@@ -1,0 +1,51 @@
+---
+title: "Population generation estimate"
+author: "Jullien Flynn"
+date: '2017-02-28'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Collection date: early July 2015
+
+The tank populations were started in early October 2011.  
+There are 1368 days in between early October 2011 and early July 2015.  
+For the fastest moving lineage, take the generation time to be the average age at first reproduction from the life history experiment completed by James Bull, which was 11.45 days.
+
+## Fastest moving lineage 
+``` {r}
+gen_time <- 11.45
+total_days <- 1368
+(max_gens <- total_days/gen_time)
+```
+## Slowest moving lineage  
+For the slowest moving lineage, take the generation time to be the average longevity, which was 45.92 days. This is conservative because it assumes the individual releases a brood on its last day of life.  
+
+```{r}
+gen_time <- 45.91
+(min_gens <- total_days/gen_time)
+```
+## Estimate 1: Take the average of the max and min generations  
+```{r}
+(gen_est1 <- mean(c(min_gens, max_gens)))
+```
+## Estimate 2: Weight the later clutches more heavily  
+To be more conservative, we can weight the fast and slow lineages based on their relative reproductive output. Based on life history experiments, the clutch sizes were: 8.57, 15.34, 17.28, 16.4, for the first to fourth clutches, respectively. To be conservative, we can assume the fourth clutch was released at the very end of the animal's life, and the second and third clutches were released 7 days after the previous reproduction (day 18.45 and day 25.45, respectively). 
+```{r}
+clutch2_time <- 18.45
+clutch3_time <- 25.45
+clutch1_output <- 8.57
+clutch2_output <- 15.34
+clutch3_output <- 17.28
+clutch4_output <- 16.4
+(sum_clutches <- sum(clutch1_output, clutch2_output, clutch3_output, clutch4_output))
+
+clutch2_gens <- total_days/clutch2_time
+clutch3_gens <- total_days/clutch3_time
+
+gen_est2 <- (clutch1_output/sum_clutches)*max_gens + (clutch2_output/sum_clutches)*clutch2_gens + (clutch3_output/sum_clutches)*clutch3_gens + (clutch4_output/sum_clutches)*min_gens
+gen_est2
+
+```

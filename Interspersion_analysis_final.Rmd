@@ -1,0 +1,161 @@
+---
+title: "Interspersion analysis"
+author: "Jullien Flynn"
+date: '2017-01-18'
+output:
+  html_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Used perl scripts that look at k-seek output when k-seek is run separately on paired end reads.  
+Since all MA lines diverged recently from the same common ancestor, large-scale genome structure should be the same between different MA lines. Therefore, the analysis was done on one MA line, and this should reflect all MA lines.
+
+# Import and clean up data
+
+``` {r}
+
+C01.rep <- read.delim("~/Documents/FirstRotation-Andy/C01.out.rep.mpx")
+
+# import the names of the common kmers you are interested in.
+common.kmer.names <- read.table("~/Documents/FirstRotation-Andy/common.kmer.names39.txt")
+common.kmer.names <- as.vector(common.kmer.names$V1)
+
+#get rid of the first column, make it the row names
+kmer_names <- C01.rep[,1]
+C01.rep$X <- NULL
+rownames(C01.rep) <- kmer_names
+C01.rep <- as.matrix(C01.rep)
+interspersion.matrix <- matrix(ncol=length(common.kmer.names), nrow=length(common.kmer.names))
+rownames(interspersion.matrix) <- common.kmer.names
+colnames(interspersion.matrix) <- common.kmer.names
+
+```
+# Make a new matrix
+Matrix will show interactions between kmers.
+``` {r}
+interspersion.matrix <- matrix(ncol=length(common.kmer.names), nrow=length(common.kmer.names))
+rownames(interspersion.matrix) <- common.kmer.names
+colnames(interspersion.matrix) <- common.kmer.names
+
+```
+# Sum interactions to make a pairwise matrix
+Now sum interactions to make a pairwise matrix, because identity of the reads as R1 or R2 is not meaningful.
+```{r}
+pairwise.matrix <- matrix(ncol=length(common.kmer.names), nrow=length(common.kmer.names))
+rownames(pairwise.matrix) <- common.kmer.names
+colnames(pairwise.matrix) <- common.kmer.names
+
+for (i in 1:length(common.kmer.names)) {
+  pairwise.matrix[i,i] <- interspersion.matrix[i,i]
+  for (j in (i+1):length(common.kmer.names)) {
+    if (j <= length(common.kmer.names)) {
+      sum <- interspersion.matrix[i,j] + interspersion.matrix[j,i]
+      pairwise.matrix[i,j] <- sum
+    }
+  }
+}
+```
+# Need to calculate total reads each kmer is present in.
+Use shell script `run_get_ni,nj.sh`  
+And get output from that script.
+
+## Make a new matrix with the interspersion metric
+See Materials and Methods for the formula used to calculate the interspersion metric for each pair of kmers ***i*** and ***j***
+
+``` {r}
+C01.total.reads <- read.table("~/Documents/FirstRotation-Andy/C01.total.reads.txt", quote="\"", comment.char="")
+read.counts <- as.vector(C01.total.reads[,1])
+read.counts
+names(read.counts) <- common.kmer.names
+
+interspersion.metric.matrix <- matrix(ncol=length(common.kmer.names), nrow=length(common.kmer.names))
+rownames(interspersion.metric.matrix) <- common.kmer.names
+colnames(interspersion.metric.matrix) <- common.kmer.names
+
+for (i in 1:length(common.kmer.names)) {
+  for (j in i:length(common.kmer.names)) { # i will equal j, for the same kmer with itself
+    ni <- as.numeric(read.counts[i])
+    nj <- as.numeric(read.counts[j])
+    nij <- pairwise.matrix[i,j]
+    interspersion.metric.matrix[i,j] <- nij / (sqrt(ni*nj))
+  }
+}
+
+# this matrix takes a long time to make
+# have it saved already
+
+interspersion.metric.matrix <- read.csv(file="~/Documents/FirstRotation-Andy/interspersion.metric.csv")
+rownames(interspersion.metric.matrix) <- interspersion.metric.matrix$X
+interspersion.metric.matrix$X <- NULL
+interspersion.metric.matrix <- as.matrix(interspersion.metric.matrix)
+
+```
+# Get kmers that are interspersed with each other
+Kmers that have an interspersion metric > 0 are interspersed with each other
+``` {r}
+
+get_interspersed_kmers <- function(kmer.index) {
+  a <- interspersion.metric.matrix[kmer.index,which(interspersion.metric.matrix[kmer.index,] > 0)]
+  a.names <- names(which(interspersion.metric.matrix[kmer.index,] > 0))
+  b <- interspersion.metric.matrix[which(interspersion.metric.matrix[,kmer.index] > 0), kmer.index]
+  b.names <- names(which(interspersion.metric.matrix[,kmer.index] > 0))
+  ab <- c(a,b)
+  ab.names <- c(a.names, b.names)
+  names(ab) <- ab.names
+  return(ab)
+}
+
+```
+# Get number of other kmers each kmer is interspersed with
+```{r}
+# function returns number of kmers a kmer with a given index is interspersed with
+get_total_interspersion <- function(kmer.index) {
+  if (kmer.index == 1) { 
+    return (sum(interspersion.metric.matrix[kmer.index, (kmer.index + 1):ncol(interspersion.metric.matrix) ]))
+  } else if (kmer.index == ncol(interspersion.metric.matrix)) {
+    return (sum(interspersion.metric.matrix[1:(kmer.index-1), kmer.index ]))
+  } else {
+    total_rows <- sum(interspersion.metric.matrix[kmer.index, (kmer.index + 1):ncol(interspersion.metric.matrix) ])
+    total_cols <- sum(interspersion.metric.matrix[1:(kmer.index-1), kmer.index ])
+    total <- total_rows + total_cols
+    return (total)
+  }
+}
+
+# get number for each common kmer.
+# look at the ones that are interspersed with others
+total_interspersions <- c()
+for (i in 1:ncol(interspersion.metric.matrix)) {
+  total_interspersions <- c(total_interspersions, get_total_interspersion(i))
+}
+names(total_interspersions) <- colnames(interspersion.metric.matrix)
+total_interspersions
+sort(total_interspersions, decreasing=T)
+
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)=="AAAATAGG"))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)=="AAAAG"))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)=="ACGCCAGAGCACGCCAGTGC"))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)=="ACAGGAGAGC"))
+
+twenteight <- "AAGTGCACGCCAGAGCACGC"
+seventeen <- "AAGAGCACGCCAGTGCACGC"
+three <- "ACGCCAGAGCACGCCAGTGC"
+thirtfour <- "AATGCACGCCAGAGCACGCC"
+fifteen <- "AAGCCAGTGCAGC"
+nine <- "ACGCCAGAGC"
+ten <- "ACGCCAGTGC"
+thirtfive <- "AATGCACGCC"
+thirtnine <- "AATTCACACCAGAGCACGCC"
+
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==twenteight))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==seventeen))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==three))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==thirtfour))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==fifteen))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==nine))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==ten))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==thirtfive))
+get_interspersed_kmers(which(colnames(interspersion.metric.matrix)==thirtnine))
