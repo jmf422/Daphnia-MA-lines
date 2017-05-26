@@ -1,26 +1,6 @@
 
 #!/usr/bin/env bash
-#$ -S /bin/bash
-#$ -q regular.q
-#$ -j y
-#$ -N gcbias_run_dec7
-#$ -cwd
-#$ -l h_vmem=54G
-#$ -M jmf422@cornell.edu
-#$ -m be
-#$ -pe bscb 4
 
-
-# ask for multiple processors
-
-#qsub gcbias_run_dec7.sh
-
-#date
-d1=$(date +%s)
-echo $HOSTNAME
-echo $1
-
-/programs/bin/labutils/mount_server cbsufsrv5 /data1
 
 ##############################################################################
 ## This script implements a modified version of the GC bias correction method of
@@ -88,7 +68,7 @@ FRAGLEN=250
 
 # Where is your reference genome?
 # We need it in FASTA format.
-GENOME=/fs/cbsufsrv5/data1/jmf422/DaphniaKmer/Daphnia_pulex.Dappu1.21.dna_sm.genome.rDNA.fa
+GENOME=<path-to-file.fasta>
 
 # We need a file with chromsome lengths, separated by Tabs (not spaces).
 # These are just the lengths in the reference. You can get them in the header
@@ -104,7 +84,7 @@ GENOME=/fs/cbsufsrv5/data1/jmf422/DaphniaKmer/Daphnia_pulex.Dappu1.21.dna_sm.gen
 # chrY	3667352
 #
 # Where is it?
-CHROM_SIZES=$HOME/scaffold_sizes.txt
+CHROM_SIZES=<path-to-file.txt>
 # Please note that this script makes no provisions for mismatches between
 # chromosome names in this file (which is used to generate the downstream BEDs)
 # and the BAM alignments. 
@@ -113,11 +93,9 @@ CHROM_SIZES=$HOME/scaffold_sizes.txt
 
 # Where are your BAM files of aligned reads for the samples?
 # They do need to be sorted.
-# Right now, we're grabbing every file with a .bam termination in a single
-# folder. Grabbing BAMs from multiple folders is possible but slightly
-# trickier.
-BAMFOLDER=/fs/cbsufsrv5/data1/jmf422/DaphniaKmer/Bamfiles
-#BAMFOLDER=/fs/cbsufsrv5/data1/jmf422/DaphniaKmer/testBam
+# This script will take all bam files in the given folder
+BAMFOLDER=<path-to-folder/>
+
 
 # An optional part of this script's output are files ending with
 # _positions.txt. They look like this:
@@ -145,16 +123,13 @@ REMOVE_POS_FILES=false
 
 # This is just a wrapper script that calls other helper scripts.
 # Where are they?
-SRC=$HOME/gcbias_src
+SRC=<path-to-src-files/>
 
 # Which folder should I write the output to?
-RES_FOLDER=$HOME/gcbias_res_Dec7
-# note, moved to fileserver 5
+RES_FOLDER=<path-to-results-folder>
 
 # How many parallel processors to use?
-PARALLEL=4
-
-
+PARALLEL=<integer>
 
 
 #####################
@@ -184,12 +159,4 @@ rm mappable_positions.bed
 
 
 
-#date
-d2=$(date +%s)
-sec=$(( ( $d2 - $d1 ) ))
-hour=$(echo - | awk '{ print '$sec'/3600}')
-echo Runtime: $hour hours \($sec\s\)
 
-
-
-#### And we're done. ####

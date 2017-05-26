@@ -120,7 +120,7 @@ for (i in 1:ncol(daphniakmers_normalized)) {
   }
 }
 length(kb.kmer.indexes)
-common.kmer.names[kb.kmer.indexes] # these are the super abundant kmers
+common.kmer.names[kb.kmer.indexes] # these are the kmers that have at least 1000 copies
 ```
 ##Get the legit kmers
 
@@ -129,7 +129,7 @@ common.kmer.names[kb.kmer.indexes] # these are the super abundant kmers
 legit.kmer.indexes <- c()
 for (i in 1:ncol(daphniakmers_normalized)) { ## go through each column of the data
   p <- daphniakmers_normalized[,i] >= 2 ## at least 2 copies
-  if (sum(p)==nrow(daphniakmers_normalized)) { # if all samples have at least 10 copies
+  if (sum(p)==nrow(daphniakmers_normalized)) { # if all samples have at least 2 copies
     legit.kmer.indexes <- c(legit.kmer.indexes, i)
   }
 }
@@ -142,7 +142,6 @@ legit.kmer.names <- colnames(daphniakmers_normalized)[legit.kmer.indexes]
 
 # get the means of the common kmers
 common.kmer.means <- colMeans(daphniakmers_normalized[,common.kmer.indexes])
-common.kmer.means
 
 # summary of the lengths
 summary(as.factor(common.kmer.lengths))
@@ -181,10 +180,11 @@ hist(legit.kmer.lengths, breaks=20)
 ```
 ## Output the kmers into a supplementary table
 ``` {r}
-tableS1 <- data.frame(legit.kmer.names, colMeans(daphniakmers_normalized[,legit.kmer.indexes]))
-#tableS1
+tableS1 <- data.frame(c(1:length(legit.kmer.names)), legit.kmer.names, colMeans(daphniakmers_normalized[,legit.kmer.indexes]))
+colnames(tableS1) <- c("kmer index", "kmer sequence", "mean abundance")
+rownames(tableS1) <- NULL
 
-#write.table(tableS1, file="~/Documents/FirstRotation-Andy/SuppTables/tableS1.txt" , quote=F, col.names=F, row.names=F, sep="\t")
+#write.table(tableS1, file="~/Documents/FirstRotation-Andy/SuppTables/tableS1.txt" , quote=F, col.names=T, row.names=F, sep="\t")
 ```
 ## Figure 1
 ```{r}
@@ -199,10 +199,10 @@ arrows(x0=fig1, y0=(ordered.kmer.table$common.kmer.means-ordered.kmer.table$comm
 ## Comparison to D. melanogaster
 Compare to what was found in Drosophila melanogaster
 Use kmers found in at least 100 copies in D. mel female (don't want to have Y-specific kmers included) 
-Use script : `compare_dmel.py` to get intersecting kmers between D. mel and D. pul.  
+Use script : `dmel_compare.py` to get intersecting kmers between D. melanogaster and D. pulex.  
 
-Also look for common motifs: use script `.py` for D. pul, and `.py` for D. mel.
-Python scripts were referenced.
+Search for and count common motifs with `motif_search.py`.  
+
 ```{r, dmel comparison}
 # import data
 dmelkmers <- read.delim("~/Documents/FirstRotation-Andy/dmel.normalizedkmers.txt") # already normalized
@@ -218,13 +218,10 @@ dmel.common.kmers <- names(dmelkmers)[dmel.common.indexes]
 dmel.common.kmers <- dmel.common.kmers[2:length(dmel.common.kmers)]
 #write(dmel.common.kmers, file="")
 
-# Python script used to get all rotations of dmel kmers and see if they match to the D. pul kmers: 
-
-# Python script used to fund motifs in D. pul kmers and D. mel kmers:
 
 ```
-# Mutation rates in the MA lines
-Use the mean abundance of each kmer of the population as the ancestral state of the population
+# Mutation rates in the MA lines  
+Use the mean abundance of each kmer of the population as the ancestral state of the population  
 
 ```{r, mutation rates}
 MA.indexes <- c(1:28) 
@@ -256,15 +253,15 @@ hist(daphniakmers_normalized[MA.indexes, 7], breaks=12)
 
 MA.kmer.sd <- apply(daphniakmers_normalized[MA.indexes, common.kmer.indexes], 2, sd)
 
-sum(Pop.kmer.means > MA.kmer.means + (2*MA.kmer.sd))
-sum(Pop.kmer.means < MA.kmer.means - (2*MA.kmer.sd))
+sum(Pop.kmer.means > (MA.kmer.means + (2*MA.kmer.sd)))
+sum(Pop.kmer.means < (MA.kmer.means - (2*MA.kmer.sd)))
 
-sum(Pop.kmer.means > MA.kmer.means + (1*MA.kmer.sd))
-sum(Pop.kmer.means < MA.kmer.means - (1*MA.kmer.sd))
+sum(Pop.kmer.means > (MA.kmer.means + (1*MA.kmer.sd)))
+sum(Pop.kmer.means < (MA.kmer.means - (1*MA.kmer.sd)))
 # 27/39 within 1 SD
 # all within 2 SD
 
-Pop.kmer.means < MA.kmer.means - (1*MA.kmer.sd)
+
 ```
 
 ## Box plot
@@ -388,13 +385,7 @@ max(mutation.rate.abs.norm)
 # come back to plot this when comparing to the Population isolates
 
 ```
-## Output mutation rate into supplementary tables
 
-``` {r}
-#Table SX - mutation rates per kmer
-#write.table()
-
-```
 ## Kmers generated de novo
 Search for kmers that are present in 1-2 MA lines but no others.  
 First make a new matrix with all kmers that are present in at least 1 normalized copy in at least 1 MA line
@@ -429,11 +420,9 @@ get_new_kmers <- function (nlines) {
 }
 
 new_kmers_unique <- get_new_kmers(1)
-new_kmers_unique
 colnames(new_kmers_unique)
 new_kmers_pairs <- get_new_kmers(2)
 colnames(new_kmers_pairs)
-new_kmers_pairs
 
 ```
 ## Get the mean abundance of the similar kmer
@@ -546,7 +535,12 @@ total.deviation <- c()
 for (i in 1:nrow(kmer.deviation)) {
   total.deviation <- c(total.deviation, sum(kmer.deviation[i,]))
 }
+#Fig 4B
 names(total.deviation) <- rownames(kmer.deviation)
+hist(total.deviation[MA.indexes], col=rgb(1,0,0,0.5), main="", xlab="Total copy number change across all kmers", breaks=10, xlim=c(-80000, 80000))
+hist(total.deviation[Pop.indexes], col="blue", add=T)
+box()
+
 par(mar=c(5,4,4,1))
 plot(total.deviation[MA.indexes], ylim=c(-max(total.deviation), max(total.deviation)), pch=19, col="red", ylab="cumulative copy changes", xaxt="n", xlab="")
 points(y=total.deviation[Pop.indexes], x=c(4,8,12,16,24,28), pch=19, col="blue")
@@ -584,7 +578,7 @@ length(which (MA.cv > Pop.cv)) # 37/39 kmers have lower CV
 binom.test(37, 39)
 
 par(mar=c(8,4,1,1))
-# this is Figure 5A
+# this is Figure 4C
 plot(MA.cv, col="red", xlab="", ylab="CV", ylim=c(0,max(MA.cv)+10), type="l", xaxt="n")
 lines(Pop.cv, col="blue")
 axis(at=c(1:length(common.kmer.indexes)), side=1, labels=names(common.kmer.GC), las=2, cex.axis=0.4)
@@ -613,30 +607,7 @@ length(which((MA1.cv*corr_factor) > Pop.cv))
 binom.test(25, 39)
 
 ```
-# Mutation rate of MA lines versus population
-## Minimum generations in the MA lines is implausible
-Maybe get rid of this
-```{r}
-# in order for 20/39 kmers to have higher mutation rate in the 
-
-# function that takes in a number of generations for the population, calculates the mutation rate for each kmer
-# returns the number of kmers that the mutation rate is higher in the population
-
-get_number_higher <- function (gen) {
-  mutation.rate.abs.pop <- colMeans(kmer.deviation.abs[Pop.indexes, mutation.kmer.indexes])/(gen*initial_means[mutation.kmer.indexes])
-  x <- length(which(mutation.rate.abs.pop > mutation.rate.abs.norm))
-  return (x)
-}
-number_higher <- c()
-for (i in 1:101) {
-  number_higher <- c(number_higher, get_number_higher (i))
-}
-names(number_higher) <- c(1:101)
-number_higher
-
-# for half the kmers to have a higher mutation rate in the population than the MA lines, only 32-34 generations could have passed. This is very unlikely since Daphnia individuals only live up to 60 days and have a generation time of 10-14 days. When population isolates were taken from the tank, the MA lines were at generation 101.
-
-```
+# Mutation rate of MA lines versus population  
 ## Calculate the mutation rate in the population and compare
 ``` {r}
 # use 62 generations as estimate
@@ -651,7 +622,7 @@ binom.test(32, 39)
 ```
 ### Plot the mutation rate in MA lines and population isolates
 ``` {r}
-# This is Fig 5B
+# This is Fig 4D
 par(mar=c(8,4,1,1))
 plot (mutation.rate.abs.norm, type="l", col="red", ylim=c(0,.008), xaxt="n", xlab="", ylab="Copies/generation/copy")
 lines (mutation.rate.abs.pop.norm, col="blue")
@@ -673,20 +644,20 @@ Make a correlation matrix of the changes in the kmer abundance.
 Compare between MA lines and population.
 ``` {r}
 par(mar=c(8,4,1,1))
-# Fig 6A
+# Fig 5A
 deviationCorr_MA <- cor(kmer.deviation[MA.indexes,order(common.kmer.GC)])
 corrplot(deviationCorr_MA, type="upper", order="original", tl.col="black", tl.cex=0.4, tl.srt=45)
 
-# Fig 6B
+# Fig 5B
 deviationCorr_pop <- cor(kmer.deviation[Pop.indexes,order(common.kmer.GC)])
 corrplot(deviationCorr_pop, type="upper", order="original", tl.col="black", tl.cex=0.4, tl.srt=45)
 
-# Fig 6C - check correlations between related kmers
+# Fig 5C - check correlations between related kmers
 related.kmer.indexes <- c(3,9,12,15,17,28,34,35,39)
 temp <- kmer.deviation[MA.indexes,related.kmer.indexes]
-colnames(temp) <- related.kmer.indexes
+colnames(temp) <- common.kmer.names[related.kmer.indexes]
 deviationCorr_MA_rel <- cor(temp)
-corrplot(deviationCorr_MA_rel, type="upper", order="original", tl.col="black", tl.cex=1.0, tl.srt=0)
+corrplot(deviationCorr_MA_rel, type="upper", order="original", tl.col="black", tl.cex=0.4, tl.srt=45)
 
 ```
 ## Mantel test shows difference between population and MA lines
