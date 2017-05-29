@@ -29,4 +29,4 @@ The .rep.mpx file will contain the (symmetrical) matrix you want where each cell
 The R code for analyzing these matrices is in the script ``Interspersion\_analysis\_final.Rmd`` 
  which includes the usage of the
  ``run_get_ni,nj.sh`` script. 
- 
+
