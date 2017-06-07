@@ -28,10 +28,10 @@ library(ape)
 library(Rcmdr)
 library(MASS)
 ```
-Quality control steps required:
-* number of reads with kmers/total number of reads
-* raw data before normalization , compare to normalized data
-* compare technical replicates
+Quality control steps required:  
+* number of reads with kmers/total number of reads  
+* raw data before normalization , compare to normalized data  
+* compare technical replicates  
 
 # Reads with kmers per sample
 ``` {r}
@@ -170,18 +170,9 @@ points(y=C35.comparison_common.kmers,x=common.kmer.gc, pch=19, col="pink" )
 
 ```
 Conclusion: most of the ratios are consistent and close to 1, however there is unpredictable variation for kmers at 60% GC.
+  
+## Do a PCA of the 3 library preps  
 
-## Compare correlation in technical replicates to correlation among MA lines
-?? Problem: not more correlated with each other than the 
-``` {r}
-
-cor_MAlines <- cor(t(daphniakmers_normalized_w_techrep[, common.kmer.indexes]))
-#cor_MAlines
-# all MA lines are highly correlated
-
-```
-
-## Do a PCA of the 3 library preps
 ``` {r}
 lib1.lines <- c("C02", "C03", "C06", "C07", "C08", "C12", "C13", "C14", "C16", "C17", "C18", "C20", "C21", "C24", "C25", "C34", "C36", "C37", "C38", "C39", "C40", "C44")
 lib1.indexes <- match(lib1.lines, rownames(daphniakmers_normalized_w_techrep))
@@ -221,7 +212,7 @@ x <- summary(pca.data)
 #str(x) 
 plot(x$importance[3,], type="l", xlab="PC", ylab="proportion of variance explained", main="Cumulative amount of variance explained by PCs")
 ```
-Conclusion: PC1 is separating samples based on a biological factor (mutations). PC2 is separating samples based on library prep. Technical replicates are very close along PC1 and a bit separated along PC2.
+Conclusion: PC1 is separating samples based on a biological factor (mutations). PC2 is separating samples based on library prep. Technical replicates are very close along PC1 and a bit separated along PC2. 
 
 ## Use permutations to see if there is a significant difference in the abundance of each kmer for the different libraries
 ``` {r}
@@ -340,5 +331,7 @@ hist(wilcoxp_matrix)
 alpha <- 0.05/(nrow(wilcoxp_matrix) -1)
 alpha
 length(which(wilcoxp_matrix < 0.05))
+
+# many MA lines are similar to each other. 
 
 

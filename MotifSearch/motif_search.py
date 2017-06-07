@@ -64,7 +64,6 @@ def motif_search(kmer_list):
 
 #with open('../common.kmer.names39.txt', 'r') as f:
 #with open ('dpul-final-all-legitkmers.txt', 'r') as f:
-#with open ('New-unrelated-kmers.txt', 'r') as f:
 #with open('dmel.commonkmers.txt', 'r') as f:
 	for line in f:
 		rots = get_rotations(line.strip())
