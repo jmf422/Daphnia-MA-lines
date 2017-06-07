@@ -174,12 +174,11 @@ Conclusion: most of the ratios are consistent and close to 1, however there is u
 ## Compare correlation in technical replicates to correlation among MA lines
 ?? Problem: not more correlated with each other than the 
 ``` {r}
-(t(daphniakmers_normalized_w_techrep[, common.kmer.indexes]))
+
 cor_MAlines <- cor(t(daphniakmers_normalized_w_techrep[, common.kmer.indexes]))
-cor_MAlines
+#cor_MAlines
 # all MA lines are highly correlated
-cov_MAlines <- cov(t(daphniakmers_normalized_w_techrep[, common.kmer.indexes]))
-cov_MAlines
+
 ```
 
 ## Do a PCA of the 3 library preps
@@ -202,6 +201,25 @@ g <- ggbiplot(pca.data, obs.scale = 1, var.scale = 1, groups = category, var.axe
 g <- g + scale_color_discrete(name='')
 g <- g + theme(legend.direction='horizontal', legend.position='top')
 print(g)
+
+g <- ggbiplot(pca.data, choices=2:3, obs.scale = 1, groups = category, var.scale = 1, var.axes = F)
+g <- g + scale_color_discrete(name='')
+g <- g + theme(legend.direction='horizontal', legend.position='top')
+print(g)
+
+g <- ggbiplot(pca.data, choices=3:4, obs.scale = 1, groups = category, var.scale = 1, var.axes = F)
+g <- g + scale_color_discrete(name='')
+g <- g + theme(legend.direction='horizontal', legend.position='top')
+print(g)
+
+g <- ggbiplot(pca.data, choices=c(1,3), obs.scale = 1, groups = category, var.scale = 1, var.axes = F)
+g <- g + scale_color_discrete(name='')
+g <- g + theme(legend.direction='horizontal', legend.position='top')
+print(g)
+
+x <- summary(pca.data)
+#str(x) 
+plot(x$importance[3,], type="l", xlab="PC", ylab="proportion of variance explained", main="Cumulative amount of variance explained by PCs")
 ```
 Conclusion: PC1 is separating samples based on a biological factor (mutations). PC2 is separating samples based on library prep. Technical replicates are very close along PC1 and a bit separated along PC2.
 

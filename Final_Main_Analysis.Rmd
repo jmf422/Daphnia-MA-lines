@@ -90,6 +90,8 @@ common.kmer.names <- colnames(daphniakmers_normalized)[common.kmer.indexes]
 
 length(common.kmer.indexes) # number of total top kmers
 
+write.csv(colMeans(daphniakmers_normalized[Pop_indexes, common.kmer.indexes]), file="~/Documents/FirstRotation-Andy/SubmissionScripts/Metals/population_kmermeans.csv") 
+
 # function that calculates the length of a kmer
 Calc_kmer_length <- function (kmer_string) {
   return (nchar(kmer_string))
