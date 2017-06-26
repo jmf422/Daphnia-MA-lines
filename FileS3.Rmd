@@ -1,5 +1,5 @@
 ---
-title: "Daphnia kmer mutation study"
+title: "Selection constrains high rates of satellite DNA mutation in Daphnia pulex"
 author: "Jullien Flynn"
 date: '2017-01-12'
 output:
@@ -13,7 +13,8 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, tidy.opts=list(width.cutoff=60,tidy=TRUE))
 ```
-**Daphnia kmer Analysis for Flynn et al. 2017 manuscript** 
+**Daphnia kmer Analysis for Flynn et al. 2017 manuscript**  
+
 GC correction bins used: [0, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.75, 1.0]  
 
 Load necessary packages:
@@ -180,7 +181,9 @@ length(which(legit.kmer.lengths==12))
 hist(legit.kmer.lengths, breaks=20)
 
 ```
-## Output the kmers into a supplementary table
+
+
+## Output the kmers into tableS1
 ``` {r}
 tableS1 <- data.frame(c(1:length(legit.kmer.names)), legit.kmer.names, colMeans(daphniakmers_normalized[,legit.kmer.indexes]))
 colnames(tableS1) <- c("kmer index", "kmer sequence", "mean abundance")
@@ -202,6 +205,7 @@ fig1 <- barplot(ordered.kmer.table$common.kmer.means, log="y", ylim=c(100,60000)
 arrows(x0=fig1, y0=(ordered.kmer.table$common.kmer.means-ordered.kmer.table$common.kmer.sd), x1=fig1, y1=ordered.kmer.table$common.kmer.means + ordered.kmer.table$common.kmer.sd, angle=90, code=3, length=0)
 
 ```
+  
 ## Comparison to D. melanogaster
 Compare to what was found in Drosophila melanogaster
 Use kmers found in at least 100 copies in D. mel female (don't want to have Y-specific kmers included).  File of D. mel kmers was obtained from unpublished data from KH-C Wei, SS Lower, JJ Sless, and DA Barbash. 
@@ -257,8 +261,9 @@ names(generations) <- generations_file[,1]
 MA.kmer.means <- colMeans(daphniakmers_normalized[MA.indexes, common.kmer.indexes])
 Pop.kmer.means <- colMeans(daphniakmers_normalized[Pop.indexes, common.kmer.indexes])
 
-hist(daphniakmers_normalized[MA.indexes, 1], breaks=12)
-hist(daphniakmers_normalized[MA.indexes, 7], breaks=12)
+hist(MA.kmer.means, breaks=8, xlab="Mean abundance in MA lines")
+hist(Pop.kmer.means, breaks=8, xlab="Mean abundance in Population")
+
 
 # quantify the amount of variation in kmer mean abundance between MA lines and pop 
 MA.kmer.sd <- apply(daphniakmers_normalized[MA.indexes, common.kmer.indexes], 2, sd)
@@ -286,15 +291,18 @@ for (j in mutation.kmer.indexes) {
 }
 
 mutation.df <- data.frame(mutation.rate.data, common.kmer.names[mutation.kmer.indexes])
+mutation.df$common.kmer.names.mutation.kmer.indexes. <- factor (mutation.df$common.kmer.names.mutation.kmer.indexes., levels = common.kmer.names[mutation.kmer.indexes])
 
 par(mar=c(8,4,1,1))
 boxplot (mutation.df[,1] ~ mutation.df[,2], data=mutation.df, las=2, cex.axis=0.5, ylab="Copies changed/gen/copy")
-abline(h=0, col="red")
+abline(h=0, col="red", lwd=2)
 
 ```
+  
 It seems more expansions than contractions  
 Look across all kmers to see if this is indeed the case - might be biased to expansions in the common kmers.  
 Actually, this pattern of expansions in the MA lines compared to the population is across all kmers.  
+  
 ## Expansions more common than contractions
 ```{r, expansions and contractions}
 # deviation for all kmers
@@ -362,13 +370,15 @@ median(mutation.rate.abs)
 mean(mutation.rate.abs)
 
 # see if correlation with kmer abundance
-plot(y=mutation.rate.abs, x=common.kmer.means[mutation.kmer.indexes], pch=19,  xlab="Mean abundance", ylab="Copies/generation")
+plot(y=mutation.rate.abs, x=common.kmer.means[mutation.kmer.indexes], pch=19,  xlab="Mean abundance", ylab="Copies/generation", col="tan1", cex=1.4)
+abline(lm(formula = mutation.rate.abs ~ common.kmer.means[mutation.kmer.indexes]), col="red", lwd=2)
 
 # seems to be linear relationship, check statistical significance
 summary(lm(formula = mutation.rate.abs ~ common.kmer.means[mutation.kmer.indexes]))
 
 # no relationship with kmer length
 plot(y=mutation.rate.abs, x=common.kmer.lengths[mutation.kmer.indexes], log="y", xlab="kmer length", ylab="mutation rate", pch=19)
+
 
 # no relationship with GC content
 plot(y=mutation.rate.abs, x=common.kmer.GC[mutation.kmer.indexes], log="y", xlab="GC content", ylab="mutation rate", pch=19)
@@ -546,6 +556,32 @@ boxplot (kmers.abs.df[,1] ~ kmers.abs.df[,2], data=kmers.abs.df, cex.axis=0.8, y
 
 groups <- as.factor(c(rep(1, times=28), rep(2, times=6)))
 leveneTest(total.kmers.abs, groups, center=median)
+```
+### Subsample from the MA lines  
+```{r}
+
+
+subsample_totalcontent <- function (CI) {
+  means <- c()
+  variances <- c()
+  for (j in 1:1000) {
+    k <- sample(MA.indexes, size=6, replace=T)
+    means <- c(means, mean(total.kmers.abs[k]))
+    variances <- c(variances, var(total.kmers.abs[k]))
+  }
+  quantiles_means <- quantile(means, CI)
+  quantiles_vars <- quantile(variances, CI)
+  output <- c (quantiles_means, quantiles_vars)
+  return(output)
+}
+
+subsample_totalcontent(0.05)
+mean (total.kmers.abs[Pop_indexes]) # below the 5%
+var (total.kmers.abs[Pop_indexes]) # not below the 5%
+
+subsample_totalcontent(0.1)
+mean (total.kmers.abs[Pop_indexes]) # below the 10%
+var (total.kmers.abs[Pop_indexes]) # not below the 10%
 
 ```
 
@@ -663,6 +699,38 @@ legend(x="top", c("MA lines", "Population"), lty=c(1,1), col=c("red","blue"), pt
 
 ```
   
+### Subsample the MA lines
+
+```{r}
+mutation.rate.pop.abs <- colMeans(kmer.deviation.abs[Pop.indexes,mutation.kmer.indexes])/(pop_generations)
+
+mutation.rate.abs_mx <- kmer.deviation.abs[MA.indexes, mutation.kmer.indexes]/(generations)
+
+Calc_CI_95 <- function (kmer_index) {
+  means <- c()
+  for (j in 1:1000) {
+    k <- sample(MA.indexes, size=6, replace=T)
+    means <- c(means, mean(mutation.rate.abs_mx[k, kmer_index]))
+  }
+  quantiles <- quantile(means, c(0.05, 0.95))
+  return(quantiles)
+}
+
+lower_CIs_95 <- c()
+for (i in 1:length(mutation.rate.pop.abs)) {
+  lower_CIs_95 <- c(lower_CIs_95, Calc_CI_95(i)[1])
+}
+
+upper_CIs_95 <- c()
+for (i in 1:length(mutation.rate.pop.abs)) {
+  upper_CIs_95 <- c(upper_CIs_95, Calc_CI_95(i)[2])
+}
+
+which(mutation.rate.pop.abs < lower_CIs_95)
+length(which(mutation.rate.pop.abs < lower_CIs_95))
+# 22/38 kmers have a significantly lower mutation rate in the MA lines
+
+```  
 ### Some kmers are more constrained than others  
 
 ``` {r}
@@ -671,6 +739,10 @@ mutation.rate.diffs[order(mutation.rate.diffs)]
 # arbitrary measure for constraint to illustrate the variation in constraint level between different kmers.  
 mutation.rate.diffs[which(mutation.rate.diffs < 0.10)] # which kmers have not a large constraint
 mutation.rate.diffs[which(mutation.rate.diffs > 0.75)] # which kmers have a high constraint 
+
+names(mutation.rate.diffs[which(mutation.rate.diffs > 0.75)])  %in% names(which(mutation.rate.pop.abs < lower_CIs_95)) 
+# all of the highly constrained kmers are significant
+
 ```
 # Kmers mutating in a correlated manner  
 
@@ -694,6 +766,7 @@ deviationCorr_MA_rel <- cor(temp)
 corrplot(deviationCorr_MA_rel, type="upper", order="original", tl.col="black", tl.cex=0.4, tl.srt=45)
 
 ```
+  
 ## Mantel test shows difference between population and MA lines  
 
 ```{r}

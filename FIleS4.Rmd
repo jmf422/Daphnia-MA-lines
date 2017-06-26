@@ -103,7 +103,8 @@ total_normalized_counts <- rowSums(daphniakmers_normalized)
 # plot this now
 plot(x=mapdp, y=total_normalized_counts, xlab="Average read depth", ylab="Total normalized kmer counts")
 ```
-There was a positive linear relationship between read depth and kmer counts before normalization, as to be expected.  
+  
+  There was a positive linear relationship between read depth and kmer counts before normalization, as to be expected.  
 After normalizing, this positive relationship is no longer apparent. A slight negative relationship is likely because the population isolates had higher read depth, and they had less kmer content (which we argue is due to selection, see manuscript).
 
 # Process this data without technical replicates and get summaries
@@ -158,7 +159,8 @@ mean(C35.comparison_common.kmers)
 sd(C35.comparison_common.kmers)
 
 ```
-See if deviations are consistently related to GC content
+  
+  See if deviations are consistently related to GC content
 
 ```{r}
 plot(C01.comparison_common.kmers, pch=19, col="purple", ylim=c(0.2, 2) , ylab="ratio")
@@ -169,6 +171,7 @@ plot(y=C01.comparison_common.kmers, x=common.kmer.gc, type="p", col="purple", pc
 points(y=C35.comparison_common.kmers,x=common.kmer.gc, pch=19, col="pink" )
 
 ```
+  
 Conclusion: most of the ratios are consistent and close to 1, however there is unpredictable variation for kmers at 60% GC.
   
 ## Do a PCA of the 3 library preps  
@@ -193,6 +196,7 @@ g <- g + scale_color_discrete(name='')
 g <- g + theme(legend.direction='horizontal', legend.position='top')
 print(g)
 
+#plot different PCs to see if a different pattern is revealed
 g <- ggbiplot(pca.data, choices=2:3, obs.scale = 1, groups = category, var.scale = 1, var.axes = F)
 g <- g + scale_color_discrete(name='')
 g <- g + theme(legend.direction='horizontal', legend.position='top')
@@ -212,9 +216,11 @@ x <- summary(pca.data)
 #str(x) 
 plot(x$importance[3,], type="l", xlab="PC", ylab="proportion of variance explained", main="Cumulative amount of variance explained by PCs")
 ```
+
+  
 Conclusion: PC1 is separating samples based on a biological factor (mutations). PC2 is separating samples based on library prep. Technical replicates are very close along PC1 and a bit separated along PC2. 
 
-## Use permutations to see if there is a significant difference in the abundance of each kmer for the different libraries
+## Use subsampling to see if there is a significant difference in the abundance of each kmer for the different libraries
 ``` {r}
 MA1_names <- c("C01", "C02", "C03", "C06", "C07", "C08", "C12", "C13", "C14", "C16", "C17", "C18", "C20", "C21", "C24", "C25", "C34", "C35", "C36", "C37", "C38", "C39", "C40", "C44")
 MA1_indexes <- match(MA1_names, rownames(daphniakmers_normalized))
@@ -225,6 +231,7 @@ MA1.means <- c()
 for (i in common.kmer.indexes) {
   MA1.means <- c(MA1.means, mean(daphniakmers_normalized[MA1_indexes,i]))
 }
+
 MA2.means <- c()
 for (i in common.kmer.indexes) {
   MA2.means <- c(MA2.means, mean(daphniakmers_normalized[MA2_indexes,i]))
@@ -235,6 +242,23 @@ means_diffs <- (MA1.means - MA2.means)/MA1.means
 plot(means_diffs)
 abline(h=0, col="red")
 
+# get upper and lower range of MA1 and MA2
+upper_range_MA1 <- c()
+for (i in common.kmer.indexes) {
+  max_MA1 <- max (daphniakmers_normalized[MA1_indexes,i])
+  upper_range_MA1 <- c(upper_range_MA1, max_MA1)
+}
+
+lower_range_MA1 <- c()
+for (i in common.kmer.indexes) {
+  min_MA1 <- min (daphniakmers_normalized[MA1_indexes,i])
+  lower_range_MA1 <- c(lower_range_MA1, min_MA1)
+}
+
+
+sum(MA2.means <= upper_range_MA1 & (MA2.means >= lower_range_MA1))
+
+
 
 ## randomly sample 4 of the 28 and calculate the mean. Do this 1000 times for each kmer. 
 # calculate the 0.95 and 0.05 quantile of the distribution.
@@ -243,9 +267,9 @@ Calc_CI <- function (kmer_index) {
   means <- c()
   for (j in 1:1000) {
     k <- sample(c(1:24), size=4, replace=T)
-    means <- c(means, daphniakmers_normalized[k, kmer_index])
+    means <- c(means, mean(daphniakmers_normalized[k, kmer_index]))
   }
-  quantiles <- quantile(means, c(0.05, 0.95))
+  quantiles <- quantile(means, c(0.01, 0.99))
   return(quantiles)
 }
 
@@ -281,57 +305,7 @@ for (i in common.kmer.indexes) {
 }
 sum(v==TRUE)
 
+
+
 ```
-
-## Is the variation between technical replicates less than the variation between samples?
-``` {r}
-# try a paired wilcoxon signed test
-
-C01.C001.df <- data.frame(daphniakmers_normalized_w_techrep[C01.index, common.kmer.indexes], daphniakmers_normalized_w_techrep[C001.index, common.kmer.indexes])
-colnames(C01.C001.df) <- c("C01", "C001")
-
-wilcox.test(C01.C001.df$C01, C01.C001.df$C001, paired = TRUE)
-
-
-C35.C035.df <- data.frame(daphniakmers_normalized_w_techrep[C35.index, common.kmer.indexes], daphniakmers_normalized_w_techrep[C035.index, common.kmer.indexes])
-colnames(C35.C035.df) <- c("C35", "C035")
-
-wilcox.test(C35.C035.df$C35, C35.C035.df$C035, paired = TRUE)
-
-# not significant difference between technical replicates
-
-# significant difference between these two MA lines in the same technical replicate.
-# do pairwise comparisons of MA lines??
-
-C01.C35.df <- data.frame(daphniakmers_normalized_w_techrep[C01.index, common.kmer.indexes], daphniakmers_normalized_w_techrep[C35.index, common.kmer.indexes])
-colnames(C01.C35.df) <- c("C01", "C35")
-
-result <- wilcox.test(C01.C35.df$C01, C01.C35.df$C35, paired = TRUE)
-result$p.value
-
-C001.C035.df <- data.frame(daphniakmers_normalized_w_techrep[C001.index, common.kmer.indexes], daphniakmers_normalized_w_techrep[C035.index, common.kmer.indexes])
-colnames(C001.C035.df) <- c("C001", "C035")
-
-result <- wilcox.test(C001.C035.df$C001, C001.C035.df$C035, paired = TRUE)
-result$p.value
-result
-
-wilcoxp_matrix <- matrix(ncol=nrow(daphniakmers_normalized_w_techrep), nrow=nrow(daphniakmers_normalized_w_techrep))
-
-for (i in 1:nrow(daphniakmers_normalized_w_techrep)) {
-  for (j in 1:nrow(daphniakmers_normalized_w_techrep)) {
-    df <- data.frame(daphniakmers_normalized_w_techrep[i, common.kmer.indexes], daphniakmers_normalized_w_techrep[j, common.kmer.indexes])
-    result <- wilcox.test(df[,1], df[,2], paired = TRUE)
-    wilcoxp_matrix[i,j] <- result$p.value
-  }
-}
-
-hist(wilcoxp_matrix)
-
-alpha <- 0.05/(nrow(wilcoxp_matrix) -1)
-alpha
-length(which(wilcoxp_matrix < 0.05))
-
-# many MA lines are similar to each other. 
-
 
