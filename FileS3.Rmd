@@ -383,6 +383,14 @@ plot(y=mutation.rate.abs, x=common.kmer.lengths[mutation.kmer.indexes], log="y",
 # no relationship with GC content
 plot(y=mutation.rate.abs, x=common.kmer.GC[mutation.kmer.indexes], log="y", xlab="GC content", ylab="mutation rate", pch=19)
 
+# no relationship with interspersion level (see FileS5)
+fraction_interspersed <- read.table("~/Documents/FirstRotation-Andy/Manuscript/PostReview/interspersion.level.txt")
+fraction_interspersed <- as.vector(fraction_interspersed[,1])
+names(fraction_interspersed) <- common.kmer.names
+fraction_interspersed <- fraction_interspersed[-2] # get rid of telomere repeat
+plot(y=mutation.rate.abs, x=fraction_interspersed, log="y", xlab="Proportion of mate pairs both containing kmers")
+
+
 # What about the telomere?
 telomere.change.rate <- mean(kmer.deviation.abs[MA.indexes, 2])/mean_generations
 mean(daphniakmers_normalized[MA.indexes,2])
@@ -743,6 +751,11 @@ mutation.rate.diffs[which(mutation.rate.diffs > 0.75)] # which kmers have a high
 names(mutation.rate.diffs[which(mutation.rate.diffs > 0.75)])  %in% names(which(mutation.rate.pop.abs < lower_CIs_95)) 
 # all of the highly constrained kmers are significant
 
+# level of constraint not related to the kmer copy number
+plot(x=common.kmer.means[-2], y=mutation.rate.diffs, log="x", xlab="kmer copy number", ylab="Constraint")
+
+# level of constraint not related to interspersion level
+plot(x=fraction_interspersed, y=mutation.rate.diffs, xlab="Proportion of mate pairs both containing kmers", ylab="Constraint")
 ```
 # Kmers mutating in a correlated manner  
 

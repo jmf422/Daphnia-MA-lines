@@ -26,19 +26,13 @@ common.kmer.names <- as.vector(common.kmer.names$V1)
 #get rid of the first column, make it the row names
 kmer_names <- C01.rep[,1]
 C01.rep$X <- NULL
+C01.rep$N <- NULL
 rownames(C01.rep) <- kmer_names
 C01.rep <- as.matrix(C01.rep)
-interspersion.matrix <- matrix(ncol=length(common.kmer.names), nrow=length(common.kmer.names))
-rownames(interspersion.matrix) <- common.kmer.names
-colnames(interspersion.matrix) <- common.kmer.names
 
-```
-# Make a new matrix
-Matrix will show interactions between kmers.
-``` {r}
+# make matrix just of the common kmers
 interspersion.matrix <- matrix(ncol=length(common.kmer.names), nrow=length(common.kmer.names))
-rownames(interspersion.matrix) <- common.kmer.names
-colnames(interspersion.matrix) <- common.kmer.names
+interspersion.matrix <- C01.rep[common.kmer.names, common.kmer.names]
 
 ```
 # Sum interactions to make a pairwise matrix
@@ -57,6 +51,62 @@ for (i in 1:length(common.kmer.names)) {
     }
   }
 }
+
+```
+
+# What fraction of kmer reads are interspersed with other kmers?  
+```{r}
+
+# function that sums all the reads in the row and column of a given kmer
+# note that the columns are not numbered by abundance in this matrix
+
+count_interspersed_reads <- function(col_number){
+  sum_column <- sum(C01.rep[,col_number])
+  sum_row <- sum(C01.rep[col_number,]) - C01.rep[col_number,col_number]
+  return(sum_column + sum_row)
+}
+
+kmers_total_interspersed <- c()
+for (i in 1:ncol(C01.rep)) {
+  kmers_total_interspersed <- c(kmers_total_interspersed, count_interspersed_reads(i))
+}
+names(kmers_total_interspersed) <- colnames(C01.rep)
+
+
+C01.total.reads <- read.table("~/Documents/FirstRotation-Andy/C01.total.reads.txt", quote="\"", comment.char="")
+read.counts <- as.vector(C01.total.reads[,1])
+names(read.counts) <- common.kmer.names
+read.counts
+# read.counts is the total number of single end reads.
+
+# some of the reads with kmers do not have a mate pair because they were merged because of overlapping reads.
+# subtract these from the read counts to calculate the fraction of interspersed
+C01.se.reads <- read.table("~/Documents/FirstRotation-Andy/Manuscript/PostReview/read.counts.merged.txt", quote="\"", comment.char="")
+se.read.counts <- as.vector(C01.se.reads[,1])
+names(se.read.counts) <- common.kmer.names
+se.read.counts
+
+pe.read.counts <- read.counts - se.read.counts
+
+```
+
+This is the fraction of interspersed kmers, which are in large repeat blocks encompassing at least the entire fragment length (~300 bp)  
+
+```{r}
+fraction_interspersed <- kmers_total_interspersed[common.kmer.names]/pe.read.counts
+fraction_interspersed
+write(fraction_interspersed, file="~/Documents/FirstRotation-Andy/Manuscript/PostReview/interspersion.level.txt", ncolumns = 1, sep = "/n") 
+
+mean(fraction_interspersed)
+median(fraction_interspersed)
+fraction_interspersed[which(fraction_interspersed > 0.50)]
+length(fraction_interspersed[which(fraction_interspersed >= 0.4)])
+
+sort(fraction_interspersed, decreasing = T)
+mean(fraction_interspersed [which (fraction_interspersed >= 0.1)])
+
+hist(fraction_interspersed)
+# is there a relationship between the interspersion level and the mutation rate: see file S3.
 ```
 # Need to calculate total reads each kmer is present in.
 Use shell script `run_get_ni,nj.sh`  
@@ -66,10 +116,6 @@ And get output from that script.
 See Materials and Methods for the formula used to calculate the interspersion metric for each pair of kmers ***i*** and ***j***
 
 ``` {r}
-C01.total.reads <- read.table("~/Documents/FirstRotation-Andy/C01.total.reads.txt", quote="\"", comment.char="")
-read.counts <- as.vector(C01.total.reads[,1])
-read.counts
-names(read.counts) <- common.kmer.names
 
 interspersion.metric.matrix <- matrix(ncol=length(common.kmer.names), nrow=length(common.kmer.names))
 rownames(interspersion.metric.matrix) <- common.kmer.names
