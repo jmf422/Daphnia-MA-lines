@@ -200,9 +200,9 @@ kmer.table <- data.frame(common.kmer.names, common.kmer.means, common.kmer.lengt
 # order the kmers by kmer length
 ordered.kmer.table <- kmer.table[order(kmer.table$common.kmer.lengths),]
 # make a barplot that will be Figure 1 of the manuscript
-par(mar=c(8,4,1,1))
-fig1 <- barplot(ordered.kmer.table$common.kmer.means, log="y", ylim=c(100,60000), names.arg=ordered.kmer.table$common.kmer.names, las=2, cex.names=0.4, cex.axis=0.8, ylab="normalized abundance", col="grey" )
-arrows(x0=fig1, y0=(ordered.kmer.table$common.kmer.means-ordered.kmer.table$common.kmer.sd), x1=fig1, y1=ordered.kmer.table$common.kmer.means + ordered.kmer.table$common.kmer.sd, angle=90, code=3, length=0)
+par(mar=c(8,4,2,1))
+fig1 <- barplot(ordered.kmer.table$common.kmer.means, log="y", ylim=c(100,88000), names.arg=ordered.kmer.table$common.kmer.names, las=2, cex.names=0.4, cex.axis=0.8, ylab="Normalized Copy Number", col="grey" )
+arrows(x0=fig1, y0=(ordered.kmer.table$common.kmer.means-ordered.kmer.table$common.kmer.sd), x1=fig1, y1=(ordered.kmer.table$common.kmer.means + ordered.kmer.table$common.kmer.sd), angle=90, code=3, length=0)
 
 ```
   
