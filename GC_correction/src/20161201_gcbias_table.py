@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """This script will generate the F variable from Benjamini & Speed 2012 from
 our BED-like tables.
+It should work with Python 2 or 3.
 """
 
 import argparse

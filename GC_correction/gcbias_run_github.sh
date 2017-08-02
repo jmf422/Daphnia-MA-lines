@@ -1,50 +1,4 @@
-
 #!/usr/bin/env bash
-
-
-##############################################################################
-## This script implements a modified version of the GC bias correction method of
-## Benjamini & Speed (Nucleic Acids Research, 2012).  The difference is that the
-## original paper looked at bias measured by how many reads start at each uniquely
-## mappable single base-pair position, producing a correction metric that was
-## "rate of read production" per uniquely mappable base pair. This script looks at
-## how many reads overlap instead of start at a given position, producing a
-## correction metric that's more akin to "average coverage at each uniquely
-## mappable base pair (of a given GC content). This makes more sense for our
-## purposes.
-## 
-## Input:
-## 1) Reference genome in FASTA format.
-## 2) Information on chromosome length for the reference genome.
-## 3) Sorted BAM files of read alignment for the samples you wish to correct.
-## 
-## Output:
-## A file ending with _gc.txt that looks like this:
-## GC        Num. Positions  Overlapping Reads  Avg. Coverage
-## 0.000000  1320            5369               4.067424242424242
-## 0.003333  669             3728               5.5724962630792225
-## 0.006667  562             11933              21.23309608540925
-## 0.010000  609             20295              33.32512315270936
-## 0.013333  450             18856              41.90222222222222
-## 0.016667  546             18875              34.56959706959707
-## 0.020000  438             28650              65.41095890410959
-## 0.023333  920             90774              98.66739130434783
-## 0.026667  645             67426              104.53643410852713
-## The columns mean, in order:
-## GC                - percent of GC content in question;
-## Num. Positions    -  number of uniquely mappable sites in the reference 
-##                      genome with that GC content;
-## Overlapping Reads - How many reads overlap all of those positions;
-## Avg. Coverage     - Total overlapping reads/number of positions.
-## 
-## The _gc.txt file can be read by any program that manipulates tab-delimited
-## files, and the data can be used for GC bias correction downstream.
-## 
-## USAGE:
-## After setting all the relevant variables below, just run this script
-## with bash or sh.
-## 
-###########################################################################
 
 ###############
 ## VARIABLES ##
@@ -99,26 +53,25 @@ BAMFOLDER=<path-to-folder/>
 
 # An optional part of this script's output are files ending with
 # _positions.txt. They look like this:
-# chr2L	5952	0.290000	0
-# chr2L	5953	0.286667	0
-# chr2L	5954	0.290000	0
-# chr2L	5955	0.290000	0
-# chr2L	5956	0.293333	0
-# chr2L	5957	0.293333	0
-# chr2L	5958	0.293333	0
-# chr2L	5959	0.290000	0
-# chr2L	5960	0.290000	0
-# chr2L	5961	0.290000	0
-# chr2L	5962	0.290000	0
-# chr2L	5963	0.286667	0
-# chr2L	5964	0.286667	0
+# chr2L	5011	39 0.396667
+# chr2L	5012	38 0.400000
+# chr2L	5013	38 0.400000
+# chr2L	5014	37 0.403333
+# chr2L	5015	37 0.400000
+# chr2L	5016	37 0.403333
+# chr2L	5017	37 0.400000
+# chr2L	5018	37 0.403333
+# chr2L	5019	36 0.403333
+# chr2L	5020	36 0.406667
+# chr2L	5021	35 0.410000
 # The first two columns describe a 1bp uniquely mappable position in the genome
-# (1-based coordinates), the third is that position's GC content (according to
-# FRAGLEN) and the last is how many reads start at this position.  This is a huge
-# multi-GB file usually, so we delete it by default. However, if you want very
-# fine information about what positions in the genome have what GC and where
-# exactly are you finding a high or low number of aligned reads, you can keep 
-# these files by changing the following variable to false:
+# (the first base in the chromosome is number 1), the third is how many reads
+# overlap this position, and the last is the position's GC content according to
+# FRAGLEN.  This is a huge multi-GB file usually, so we delete it by default.
+# However, if you want very fine information about what positions in the genome
+# have what GC and where exactly are you finding a high or low number of
+# aligned reads, you can keep these files by changing the following variable to
+# false:
 REMOVE_POS_FILES=false
 
 # This is just a wrapper script that calls other helper scripts.
