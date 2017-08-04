@@ -1,21 +1,26 @@
 # Daphnia-MA-lines
-The scripts for analysis of Daphnia MA lines for the manuscript by Flynn et al. (2017)
+The scripts for analysis from the paper "Selection constrains high rates of satellite DNA mutation in Daphnia pulex"
+Jullien M. Flynn, Ian Caldas, Melania E. Cristescu, Andrew G. Clark
 
-The first steps in the analysis were to merge overlapping reads with Seqprep, combine files, and then run k-Seek on the fastqc files. Files must also be mapped to the reference genome in order to do the GC correction, shown below.
 
-1. Scripts required for the gc correction are in the GC_correction folder. 
+Any questions about these scripts should be directed to Jullien Flynn: jmf422@cornell.edu. If the question is pertaining to the GC correction, it should be directed to Ian Caldas: ivc2@cornell.edu.
 
+The first steps in the analysis were to merge overlapping reads with Seqprep, combine files, and then run k-Seek on the fastqc files. K-Seek is available at https://github.com/weikevinhc/k-seek . Files must also be mapped to the reference genome in order to do the GC correction.
+
+1. Scripts required for the gc correction are in the GC_correction folder. Please refer to the README file contained in that folder for specific details. 
+ 
     `gcbias_run_github.sh`
 is the wrapper script that uses the source files and input file requirements that are described within the script.  
 
 The next step of the GC correction is to use the
     `modified_correct_bins_jf.py` 
-python script. This script takes as input files the output table generated from k-compile (available from k-Seek's Github page at: https://github.com/weikevinhc/k-seek) as well as the gc.txt files output from the previous script.  
+python script. This script takes as input files the output table generated from k-compile  as well as the gc.txt files output from the previous GC correction script.  
 
  
 2. The R code used for the main analysis is in the Rmd file
     `FileS3.Rmd`
-The main input into this file is the file produced from the output of the GC correction script.  
+The main input into this file is the file produced from the output of the GC correction script. Please see the InputFiles folder for the required input files for this and other scripts.
+
 
 Comparing the kmers between Drosophila melanogaster and also searching kmers for common motifs that were found amongst the most common kmers are in the MotifSearch folder.
 
@@ -41,5 +46,8 @@ The .rep.mpx file will contain the (symmetrical) matrix you want where each cell
 The R code for analyzing these matrices is in the script  
     FileS5.Rmd 
 which includes the usage of the
-    run_get_ni,nj.sh script. 
+     run_get_ni,nj.sh 
+script, as well as the
+    extract.py
+script. 
 
