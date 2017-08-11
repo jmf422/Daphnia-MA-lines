@@ -90,12 +90,12 @@ pe.read.counts <- read.counts - se.read.counts
 
 ```
 
-This is the fraction of interspersed kmers, which are in large repeat blocks encompassing at least the entire fragment length (~300 bp)  
+This is the fraction of interspersed kmers, which are in large repeat blocks encompassing at least the entire fragment length (~250 bp)  
 
 ```{r}
 fraction_interspersed <- kmers_total_interspersed[common.kmer.names]/pe.read.counts
 fraction_interspersed
-write(fraction_interspersed, file="~/Documents/FirstRotation-Andy/Manuscript/PostReview/interspersion.level.txt", ncolumns = 1, sep = "/n") 
+#write(fraction_interspersed, file="~/Documents/FirstRotation-Andy/Manuscript/PostReview/interspersion.level.txt", ncolumns = 1, sep = "/n") 
 
 mean(fraction_interspersed)
 median(fraction_interspersed)
