@@ -8,7 +8,10 @@ SAMPLEBAM=$5
 
 SAMPLENAME=`basename ${SAMPLEBAM%.*}`
 
-bedtools genomecov -ibam $SAMPLEBAM -g $CHROM_SIZES -d \
+samtools index $SAMPLEBAM
+samtools view -b $SAMPLEBAM `cut -f 1 $CHROM_SIZES` \
+    | bedtools bamtobed -i stdin \
+    | bedtools genomecov -i stdin -g $CHROM_SIZES -d \
     | awk 'NR==FNR{a[$1,$3]=$4;next} ($1,$2) in a{print $0, a[$1,$2]}' \
     mappable_positions.bed /dev/stdin > $SAMPLENAME\_positions.txt
 
@@ -23,6 +26,7 @@ else
     mv $SAMPLENAME\_positions.txt $RES_FOLDER
 fi
 
+mkdir -p $RES_FOLDER
 mv $SAMPLENAME\_gc.txt $RES_FOLDER
 
 echo "Done getting the table for $SAMPLENAME!"
