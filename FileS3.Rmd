@@ -1,5 +1,5 @@
 ---
-title: "Selection constrains high rates of satellite DNA mutation in Daphnia pulex"
+title: "Selection constrains high rates tandem repetitive DNA  mutation in Daphnia pulex"
 author: "Jullien Flynn"
 date: '2017-01-12'
 output:
@@ -139,7 +139,7 @@ length(legit.kmer.indexes) # number of legit kmers
 legit.kmer.names <- colnames(daphniakmers_normalized)[legit.kmer.indexes]
 
 ```
-## Mean counts, length summary, absolute satDNA content
+## Mean counts, length summary, absolute tandem repeat content
 ```{r, kmer summaries}
 
 # get the means of the common kmers
@@ -538,7 +538,7 @@ Calc_lost_other_means(kmers_lost_pairs)
   
 # Compare MA lines with population
 
-## Compare the total satDNA content
+## Compare the total repeat content
 
 ``` {r}
 min(total.kmers.abs[MA.indexes])

@@ -1,5 +1,5 @@
 # Daphnia-MA-lines
-The scripts for analysis from the paper "Selection constrains high rates of satellite DNA mutation in Daphnia pulex"
+The scripts for analysis from the paper "Selection constrains high rates of tandem repetitive DNA mutation in Daphnia pulex"
 Jullien M. Flynn, Ian Caldas, Melania E. Cristescu, Andrew G. Clark
 
 
