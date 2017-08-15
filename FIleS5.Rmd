@@ -1,0 +1,311 @@
+---
+title: "Quality control"
+author: "Jullien Flynn"
+date: '2017-01-20'
+output:
+  html_document:
+    toc: yes
+  pdf_document:
+    number_sections: yes
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+Load necessary packages:
+``` {r, load packages, include=FALSE}
+## load packages
+rm(list = ls()) # clear environment
+library(devtools)
+library(ggbiplot)
+library(raster)
+library(corrplot)
+source("http://bioconductor.org/biocLite.R")
+require(Biostrings)
+library(adegenet)
+library(ape)
+library(Rcmdr)
+library(MASS)
+```
+Quality control steps required:  
+* number of reads with kmers/total number of reads  
+* raw data before normalization , compare to normalized data  
+* compare technical replicates  
+
+# Reads with kmers per sample
+``` {r}
+kmer_reads <- read.csv("~/Documents/FirstRotation-Andy/kmer_reads.csv")
+# last row is the total, get rid of it
+kmer_reads <- kmer_reads[1:nrow(kmer_reads)-1,]
+plot(x=kmer_reads$Total.reads, y=kmer_reads$kmer.reads, xlab="Total reads", ylab="Reads with kmers")
+# top cluster is the second library prep, which has higher depth but the same proportion of reads with kmers as the first library.
+```
+# Compare before and after normalization  
+Check correlation with kmer abundance to read depth.
+
+``` {r}
+# import raw, un-normalized data
+daphniakmers <- read.delim("~/Documents/FirstRotation-Andy/daphniakmer.rep.compiled.txt")
+# name the rows as the names of the lines
+file_names <- as.vector(daphniakmers$lines)
+file_names <- sapply(strsplit(file_names, "\\."), '[', 1) 
+rownames(daphniakmers) <- file_names
+# now get rid of the column that has the file name
+daphniakmers[,1] <- NULL
+# the columns (kmers) by their mean abundance
+means <- colMeans(daphniakmers)
+index.orders <- order(means, decreasing=T)
+daphniakmers <- daphniakmers[,order(means, decreasing=T)]
+# remove the total bp column and the poly-N columns
+daphniakmers$total_bp <- NULL
+daphniakmers$N.N <- NULL
+
+# change the colnames to not show the reverse complement
+kmer.labels <- sapply(strsplit(colnames(daphniakmers), "\\."), '[', 1)
+colnames(daphniakmers) <- kmer.labels
+
+# Get rowSums for each sample
+raw_counts <- rowSums(daphniakmers)
+raw_counts
+
+# import read depth (calculated from GATK DepthOf Coverage)
+mapdp <- read.table("~/Documents/mapdp.txt", header=F)
+mapdp <- as.vector(mapdp[, 1])
+
+# plot the raw total kmer counts against the average read depth
+plot(x=mapdp, y=raw_counts, xlab="Average read depth", ylab="Total raw kmer counts")
+
+# import data normalized by depth and GC-content
+daphniakmers_normalized_w_techrep <- read.csv("~/Documents/FirstRotation-Andy/daphniakmers_corrected_bins3_Jan7.csv")
+# process it
+file_names <- as.vector(daphniakmers_normalized_w_techrep$X)
+file_names <- sapply(strsplit(file_names, "\\."), '[', 1) 
+rownames(daphniakmers_normalized_w_techrep) <- file_names
+# now get rid of the column that has the file name
+daphniakmers_normalized_w_techrep[,1] <- NULL
+# the columns (kmers) by their mean abundance
+means <- colMeans(daphniakmers_normalized_w_techrep)
+index.orders <- order(means, decreasing=T)
+daphniakmers_normalized_w_techrep <- daphniakmers_normalized_w_techrep[,order(means, decreasing=T)]
+# remove the total bp column and the poly-N columns
+daphniakmers_normalized_w_techrep$total_bp <- NULL
+daphniakmers_normalized_w_techrep$N.N <- NULL
+
+daphniakmers_normalized_w_techrep <- as.matrix(daphniakmers_normalized_w_techrep)
+## need to convert to matrix
+daphniakmers_normalized_w_techrep <- as.matrix(daphniakmers_normalized_w_techrep)
+# don't deal with the technical replicates for now
+techreps <- c("C001", "C035")
+daphniakmers_normalized <- daphniakmers_normalized_w_techrep[!rownames(daphniakmers_normalized_w_techrep) %in% techreps, ]
+total_normalized_counts <- rowSums(daphniakmers_normalized)
+
+# plot this now
+plot(x=mapdp, y=total_normalized_counts, xlab="Average read depth", ylab="Total normalized kmer counts")
+```
+  
+  There was a positive linear relationship between read depth and kmer counts before normalization, as to be expected.  
+After normalizing, this positive relationship is no longer apparent. A slight negative relationship is likely because the population isolates had higher read depth, and they had less kmer content (which we argue is due to selection, see manuscript).
+
+# Process this data without technical replicates and get summaries
+
+``` {r}
+common.kmer.indexes <- c()
+for (i in 1:ncol(daphniakmers_normalized)) {
+  if (mean(daphniakmers_normalized[,i])>=100) {
+    common.kmer.indexes <- c(common.kmer.indexes, i)
+  }
+}
+names(common.kmer.indexes) <- colnames(daphniakmers_normalized)[common.kmer.indexes]
+common.kmer.names <- colnames(daphniakmers_normalized)[common.kmer.indexes]
+
+length(common.kmer.indexes)
+
+Calc_GC_content <- function (kmer_string) {
+  string <- BString(kmer_string)
+  gc.content <- c(letterFrequency(string, letters=c("CG"), as.prob=F)/(length(string)))
+  return(gc.content)
+}
+
+common.kmer.gc <- sapply(common.kmer.names, Calc_GC_content)
+length(common.kmer.gc)
+# get rid of the dot before the GC in the name
+names(common.kmer.gc) <- common.kmer.names
+```
+
+# Compare technical replicates
+
+``` {r}
+
+C35.index <- which(rownames(daphniakmers_normalized_w_techrep)=="C35")
+C01.index <- which(rownames(daphniakmers_normalized_w_techrep)=="C01")
+C001.index <- which(rownames(daphniakmers_normalized_w_techrep)=="C001")
+C035.index <- which(rownames(daphniakmers_normalized_w_techrep)=="C035")
+
+C01.comparison_common.kmers <- as.vector(daphniakmers_normalized_w_techrep[C01.index, common.kmer.indexes]) / as.vector(daphniakmers_normalized_w_techrep[C001.index, common.kmer.indexes])
+
+names(C01.comparison_common.kmers) <- colnames(daphniakmers_normalized_w_techrep)[common.kmer.indexes]
+
+C01.comparison_common.kmers
+mean(C01.comparison_common.kmers)
+sd(C01.comparison_common.kmers)
+
+C35.comparison_common.kmers <- as.vector(daphniakmers_normalized_w_techrep[C35.index, common.kmer.indexes]) / as.vector(daphniakmers_normalized_w_techrep[C035.index, common.kmer.indexes])
+
+names(C35.comparison_common.kmers) <- colnames(daphniakmers_normalized_w_techrep)[common.kmer.indexes]
+
+C35.comparison_common.kmers
+mean(C35.comparison_common.kmers)
+sd(C35.comparison_common.kmers)
+
+```
+  
+  See if deviations are consistently related to GC content
+
+```{r}
+plot(C01.comparison_common.kmers, pch=19, col="purple", ylim=c(0.2, 2) , ylab="ratio")
+points(C35.comparison_common.kmers, pch=19, col="pink")
+
+
+plot(y=C01.comparison_common.kmers, x=common.kmer.gc, type="p", col="purple", pch=19, ylim=c(0.2, 2.0), xlab="GC content", ylab="ratio")
+points(y=C35.comparison_common.kmers,x=common.kmer.gc, pch=19, col="pink" )
+
+```
+  
+Conclusion: most of the ratios are consistent and close to 1, however there is unpredictable variation for kmers at 60% GC.
+  
+## Do a PCA of the 3 library preps  
+
+``` {r}
+lib1.lines <- c("C02", "C03", "C06", "C07", "C08", "C12", "C13", "C14", "C16", "C17", "C18", "C20", "C21", "C24", "C25", "C34", "C36", "C37", "C38", "C39", "C40", "C44")
+lib1.indexes <- match(lib1.lines, rownames(daphniakmers_normalized_w_techrep))
+lib2.lines <- c("C23", "C27", "C43", "C49", "CC3", "CC4", "CC6", "CC7", "CC8", "CC9")
+lib2.indexes <- match(lib2.lines, rownames(daphniakmers_normalized_w_techrep))
+C01.index
+C001.index
+C35.index
+C035.index
+lib1.indexes
+lib2.indexes
+
+pca.data <- prcomp(daphniakmers_normalized_w_techrep[, common.kmer.indexes], scale.=T)
+category <- factor(c( c("C001", "C01", "lib1", "lib1", "C035"), c(rep("lib1",times=11)), "lib2", "lib1", "lib1", "lib2", "lib1", "C35", c(rep("lib1", times=5)), "lib2", "lib1", c(rep("lib2", times=7)) ))
+
+g <- ggbiplot(pca.data, obs.scale = 1, var.scale = 1, groups = category, var.axes = F)
+g <- g + scale_color_discrete(name='')
+g <- g + theme(legend.direction='horizontal', legend.position='top')
+print(g)
+
+#plot different PCs to see if a different pattern is revealed
+g <- ggbiplot(pca.data, choices=2:3, obs.scale = 1, groups = category, var.scale = 1, var.axes = F)
+g <- g + scale_color_discrete(name='')
+g <- g + theme(legend.direction='horizontal', legend.position='top')
+print(g)
+
+g <- ggbiplot(pca.data, choices=3:4, obs.scale = 1, groups = category, var.scale = 1, var.axes = F)
+g <- g + scale_color_discrete(name='')
+g <- g + theme(legend.direction='horizontal', legend.position='top')
+print(g)
+
+g <- ggbiplot(pca.data, choices=c(1,3), obs.scale = 1, groups = category, var.scale = 1, var.axes = F)
+g <- g + scale_color_discrete(name='')
+g <- g + theme(legend.direction='horizontal', legend.position='top')
+print(g)
+
+x <- summary(pca.data)
+#str(x) 
+plot(x$importance[3,], type="l", xlab="PC", ylab="proportion of variance explained", main="Cumulative amount of variance explained by PCs")
+```
+
+  
+Conclusion: PC1 is separating samples based on a biological factor (mutations). PC2 is separating samples based on library prep. Technical replicates are very close along PC1 and a bit separated along PC2. 
+
+## Use subsampling to see if there is a significant difference in the abundance of each kmer for the different libraries
+``` {r}
+MA1_names <- c("C01", "C02", "C03", "C06", "C07", "C08", "C12", "C13", "C14", "C16", "C17", "C18", "C20", "C21", "C24", "C25", "C34", "C35", "C36", "C37", "C38", "C39", "C40", "C44")
+MA1_indexes <- match(MA1_names, rownames(daphniakmers_normalized))
+MA2_names <- c("C23", "C27", "C43", "C49")
+MA2_indexes <- match(MA2_names, rownames(daphniakmers_normalized))
+
+MA1.means <- c()
+for (i in common.kmer.indexes) {
+  MA1.means <- c(MA1.means, mean(daphniakmers_normalized[MA1_indexes,i]))
+}
+
+MA2.means <- c()
+for (i in common.kmer.indexes) {
+  MA2.means <- c(MA2.means, mean(daphniakmers_normalized[MA2_indexes,i]))
+}
+
+# calculate differences in the means of MA1 and MA2
+means_diffs <- (MA1.means - MA2.means)/MA1.means
+plot(means_diffs)
+abline(h=0, col="red")
+
+# get upper and lower range of MA1 and MA2
+upper_range_MA1 <- c()
+for (i in common.kmer.indexes) {
+  max_MA1 <- max (daphniakmers_normalized[MA1_indexes,i])
+  upper_range_MA1 <- c(upper_range_MA1, max_MA1)
+}
+
+lower_range_MA1 <- c()
+for (i in common.kmer.indexes) {
+  min_MA1 <- min (daphniakmers_normalized[MA1_indexes,i])
+  lower_range_MA1 <- c(lower_range_MA1, min_MA1)
+}
+
+
+sum(MA2.means <= upper_range_MA1 & (MA2.means >= lower_range_MA1))
+
+
+
+## randomly sample 4 of the 28 and calculate the mean. Do this 1000 times for each kmer. 
+# calculate the 0.95 and 0.05 quantile of the distribution.
+#If the 95% CI is wider than the difference between them, then good.
+Calc_CI <- function (kmer_index) {
+  means <- c()
+  for (j in 1:1000) {
+    k <- sample(c(1:24), size=4, replace=T)
+    means <- c(means, mean(daphniakmers_normalized[k, kmer_index]))
+  }
+  quantiles <- quantile(means, c(0.01, 0.99))
+  return(quantiles)
+}
+
+
+lower_CIs <- c()
+for (i in common.kmer.indexes) {
+  lower_CIs <- c(lower_CIs, Calc_CI(i)[1])
+}
+
+upper_CIs <- c()
+for (i in common.kmer.indexes) {
+  upper_CIs <- c(upper_CIs, Calc_CI(i)[2])
+}
+
+plot(MA1.means[1:10], type="l", col="red", ylim=c( min(lower_CIs[1:10]), max(upper_CIs[1:10])))
+lines(MA2.means[1:10], col="blue")
+lines (lower_CIs[1:10], lty=2)
+lines (upper_CIs[1:10], lty=2)
+
+plot(MA1.means[11:23], type="l", col="red", ylim=c( min(lower_CIs[11:23]), max(upper_CIs[11:23])))
+lines(MA2.means[11:23], col="blue")
+lines (lower_CIs[11:23], lty=2)
+lines (upper_CIs[11:23], lty=2)
+
+plot(MA1.means[24:length(common.kmer.indexes)], type="l", col="red", ylim=c( min(lower_CIs[24:length(common.kmer.indexes)]), max(upper_CIs[24:length(common.kmer.indexes)])))
+lines(MA2.means[24:length(common.kmer.indexes)], col="blue")
+lines (lower_CIs[24:length(common.kmer.indexes)], lty=2)
+lines (upper_CIs[24:length(common.kmer.indexes)], lty=2)
+
+v <- c()
+for (i in common.kmer.indexes) {
+  v <-  c(v, (min(MA1.means[i], MA2.means[i]) > (Calc_CI(i)[1])) & (max(MA1.means[i], MA2.means[i]) < (Calc_CI(i)[2])))
+}
+sum(v==TRUE)
+
+
+
+```
+

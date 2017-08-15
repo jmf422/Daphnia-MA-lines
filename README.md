@@ -18,14 +18,14 @@ python script. This script takes as input files the output table generated from 
 
  
 2. The R code used for the main analysis is in the Rmd file
-    `FileS3.Rmd`
+    `FileS4.Rmd`
 The main input into this file is the file produced from the output of the GC correction script. Please see the InputFiles folder for the required input files for this and other scripts.
 
 
 Comparing the kmers between Drosophila melanogaster and also searching kmers for common motifs that were found amongst the most common kmers are in the MotifSearch folder.
 
 3. The R code used for doing various quality control tests is in
-       `FileS4.Rmd`.  
+       `FileS5.Rmd`.  
 
 The input files required for Steps 2 and 3 are located in the InputFiles folder.
 
@@ -44,7 +44,7 @@ The < out > can be anything you want the output to be named. You will get two ou
 The .rep.mpx file will contain the (symmetrical) matrix you want where each cell is the number of reads where the respective repeats are found in the two mate pairs (i.e. how many times you see a AAGAG in both reads, and AAGAG with AACAC, etc).  
 
 The R code for analyzing these matrices is in the script  
-    FileS5.Rmd 
+    `FileS6.Rmd`. 
 which includes the usage of the
      run_get_ni,nj.sh 
 script, as well as the
